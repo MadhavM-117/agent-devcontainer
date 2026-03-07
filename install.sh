@@ -118,6 +118,7 @@ extract_mounts_to_file() {
       select(
         (contains("target=/commandhistory,") | not) and
         (contains("target=/home/vscode/.claude,") | not) and
+        (contains("target=/home/vscode/.pi,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
         (contains("target=/workspace/.devcontainer,") | not)

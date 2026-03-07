@@ -54,10 +54,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
 # Create directories and set ownership (combined for fewer layers)
-RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /opt && \
+RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi/agent /opt && \
   touch /commandhistory/.bash_history && \
   touch /commandhistory/.zsh_history && \
-  chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /opt
+  chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi /opt
 
 # Set environment variables
 ENV DEVCONTAINER=true
@@ -79,14 +79,17 @@ RUN curl -fsSL https://claude.ai/install.sh | bash && \
   claude plugin marketplace add trailofbits/skills && \
   claude plugin marketplace add trailofbits/skills-curated
 
+# Install pi coding agent
+RUN npm install -g @mariozechner/pi-coding-agent
+
 # Install Python 3.13 via uv (fast binary download, not source compilation)
 RUN uv python install 3.13 --default
 
 # Install ast-grep (AST-based code search)
 RUN uv tool install ast-grep-cli
 
-# Install fnm (Fast Node Manager) and Node 22
-ARG NODE_VERSION=22
+# Install fnm (Fast Node Manager) and Node 24 (Active LTS)
+ARG NODE_VERSION=24
 ENV FNM_DIR="/home/vscode/.fnm"
 RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_DIR" --skip-shell && \
   export PATH="$FNM_DIR:$PATH" && \

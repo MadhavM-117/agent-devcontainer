@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Zsh configuration for Claude Code devcontainer
+# Zsh configuration for Claude Code & Pi devcontainer
 
 # Add Claude Code to PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -33,6 +33,7 @@ setopt ALWAYS_TO_END           # Move cursor to end after completion
 alias fd=fdfind
 alias sg=ast-grep
 alias claude-yolo='claude --dangerously-skip-permissions'
+alias pi-yolo='PI_DISABLE_PERMISSIONS=true pi'
 alias ll='ls -lah --color=auto'
 alias la='ls -A --color=auto'
 alias l='ls -CF --color=auto'

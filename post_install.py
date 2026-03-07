@@ -37,6 +37,34 @@ def setup_claude_settings():
     print(f"[post_install] Claude settings configured: {settings_file}", file=sys.stderr)
 
 
+def setup_pi_settings():
+    """Configure pi coding agent with permissions matching Claude Code."""
+    pi_dir = Path.home() / ".pi" / "agent"
+    pi_dir.mkdir(parents=True, exist_ok=True)
+
+    settings_file = pi_dir / "settings.json"
+
+    # Load existing settings or start fresh
+    settings = {}
+    if settings_file.exists():
+        with contextlib.suppress(json.JSONDecodeError):
+            settings = json.loads(settings_file.read_text())
+
+    # Add permission deny rules matching Claude config
+    if "permission" not in settings:
+        settings["permission"] = {}
+    if "deny" not in settings["permission"]:
+        settings["permission"]["deny"] = []
+
+    # Ensure .devcontainer is denied (matching claude settings)
+    deny_patterns = settings["permission"]["deny"]
+    if "Read(.devcontainer/**)" not in deny_patterns:
+        deny_patterns.append("Read(.devcontainer/**)")
+
+    settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+    print(f"[post_install] Pi settings configured: {settings_file}", file=sys.stderr)
+
+
 def setup_tmux_config():
     """Configure tmux with 200k history, mouse support, and vi keys."""
     tmux_conf = Path.home() / ".tmux.conf"
@@ -212,6 +240,7 @@ def main():
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
 
     setup_claude_settings()
+    setup_pi_settings()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
