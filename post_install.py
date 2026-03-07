@@ -5,12 +5,14 @@ Runs on container creation to set up:
 - Claude Code settings (bypassPermissions mode)
 - Pi path restrictions (protect sandbox configuration)
 - Tmux configuration (200k history, mouse support)
+- Writable Neovim config import from optional host mount
 - Directory ownership fixes for mounted volumes
 """
 
 import contextlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -125,6 +127,7 @@ def fix_directory_ownership():
         Path("/commandhistory"),
         Path.home() / ".config" / "gh",
         Path.home() / ".config" / "nvim",
+        Path.home() / ".config" / "nvim-host",
     ]
 
     for dir_path in dirs_to_fix:
@@ -146,6 +149,54 @@ def fix_directory_ownership():
                     f"[post_install] Warning: Could not fix ownership of {dir_path}: {e}",
                     file=sys.stderr,
                 )
+
+
+def setup_nvim_config():
+    """Set up writable Neovim config in container from optional host mount.
+
+    If /home/vscode/.config/nvim-host exists (read-only host bind mount), copy it
+    to ~/.config/nvim (writable in-container path). This keeps host config safe
+    while allowing plugin managers to write lock/state files as needed.
+
+    Behavior can be disabled with DEVC_DISABLE_LOCAL_NVIM=1/true/yes.
+    """
+    disable = os.environ.get("DEVC_DISABLE_LOCAL_NVIM", "0").lower()
+    if disable in {"1", "true", "yes"}:
+        print(
+            "[post_install] Skipping Neovim host config import (DEVC_DISABLE_LOCAL_NVIM is set)",
+            file=sys.stderr,
+        )
+        return
+
+    host_nvim = Path.home() / ".config" / "nvim-host"
+    container_nvim = Path.home() / ".config" / "nvim"
+
+    if not host_nvim.exists():
+        print(
+            f"[post_install] No host Neovim config mount found at {host_nvim}; skipping",
+            file=sys.stderr,
+        )
+        return
+
+    if not host_nvim.is_dir():
+        print(
+            f"[post_install] Host Neovim mount is not a directory: {host_nvim}; skipping",
+            file=sys.stderr,
+        )
+        return
+
+    container_nvim.parent.mkdir(parents=True, exist_ok=True)
+
+    if container_nvim.exists() and not container_nvim.is_symlink():
+        shutil.rmtree(container_nvim)
+    elif container_nvim.is_symlink() or container_nvim.is_file():
+        container_nvim.unlink()
+
+    shutil.copytree(host_nvim, container_nvim, symlinks=True)
+    print(
+        f"[post_install] Imported host Neovim config to writable path: {container_nvim}",
+        file=sys.stderr,
+    )
 
 
 def setup_global_gitignore():
@@ -250,6 +301,7 @@ def main():
     setup_claude_settings()
     setup_pi_settings()
     setup_tmux_config()
+    setup_nvim_config()
     fix_directory_ownership()
     setup_global_gitignore()
 

@@ -121,6 +121,7 @@ extract_mounts_to_file() {
         (contains("target=/home/vscode/.pi,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
         (contains("target=/home/vscode/.config/nvim,") | not) and
+        (contains("target=/home/vscode/.config/nvim-host,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
         (contains("target=/workspace/.devcontainer,") | not)
       )
@@ -188,7 +189,7 @@ auto_configure_local_nvim_mount() {
 
   if [[ -d "$host_nvim_config" ]]; then
     log_info "Detected local Neovim config: $host_nvim_config"
-    update_devcontainer_mounts "$devcontainer_json" "$host_nvim_config" "/home/vscode/.config/nvim" "true"
+    update_devcontainer_mounts "$devcontainer_json" "$host_nvim_config" "/home/vscode/.config/nvim-host" "true"
   else
     log_info "No local Neovim config found at $host_nvim_config; skipping mount"
   fi

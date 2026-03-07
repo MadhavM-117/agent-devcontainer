@@ -172,6 +172,20 @@ This adds a bind mount to `devcontainer.json` and recreates the container. Exist
 
 > **Security note:** Avoid mounting large host directories (e.g., `$HOME`). Every mounted path is writable from inside the container unless `--readonly` is specified, which undermines the filesystem isolation this project provides.
 
+### Neovim in the container (optional host config)
+
+Neovim is usable in the container out of the box. When you run `devc .` or `devc template`, the helper auto-detects a host config at `~/.config/nvim` and (if present) mounts it read-only to `~/.config/nvim-host` in the container, then copies it to a writable `~/.config/nvim` during post-create.
+
+This gives you your local Neovim setup while still allowing in-container writes (for example, plugin lock/state updates).
+
+To disable this behavior, set:
+
+```bash
+DEVC_DISABLE_LOCAL_NVIM=1
+```
+
+before running `devc .` / `devc template`.
+
 ## Network Isolation
 
 By default, containers have full outbound network access. For stricter security, use iptables to restrict network access.
@@ -230,8 +244,8 @@ Claude Code is configured with `bypassPermissions` to run commands without confi
 | Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `iptables`, `ipset` |
 | AI Agents | Claude Code, [pi](https://github.com/badlogic/pi-mono) (more can be added) |
 | Volumes (survive rebuilds) | Command history (`/commandhistory`), agent configs (`~/.claude`, `~/.pi`), GitHub CLI auth (`~/.config/gh`) |
-| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only) |
-| Auto-configured | Claude skills (anthropics, trailofbits), git-delta |
+| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only), optional `~/.config/nvim` import via `~/.config/nvim-host` |
+| Auto-configured | Claude skills (anthropics, trailofbits), git-delta, optional writable Neovim config copy |
 
 Volumes are stored outside the container, so your shell history, agent settings, and `gh` login persist even after `devc rebuild`. Host `~/.gitconfig` is mounted read-only for git identity.
 
@@ -271,6 +285,20 @@ sudo chown -R $(id -u):$(id -g) ~/.pi
 
 # Fix GitHub CLI auth
 sudo chown -R $(id -u):$(id -g) ~/.config/gh
+```
+
+### Neovim config not appearing in container
+
+The Neovim host-config import only applies to the `devc` workflow (`devc .` / `devc template`).
+
+- Ensure host config exists at `~/.config/nvim`
+- Ensure `DEVC_DISABLE_LOCAL_NVIM` is not set to `1`, `true`, or `yes`
+- Recreate/rebuild after changes: `devc rebuild`
+
+To explicitly disable host Neovim import:
+
+```bash
+DEVC_DISABLE_LOCAL_NVIM=1 devc .
 ```
 
 ### Python/uv not working
