@@ -1,4 +1,4 @@
-# Claude Code Devcontainer
+# Agent Devcontainer
 # Based on Microsoft devcontainer image for better devcontainer integration
 ARG UV_VERSION=0.10.0
 FROM ghcr.io/astral-sh/uv:${UV_VERSION}@sha256:78a7ff97cd27b7124a5f3c2aefe146170793c56a1e03321dd31a289f6d82a04f AS uv

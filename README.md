@@ -1,18 +1,18 @@
-# AI Agent Devcontainer
+# Agent Devcontainer
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
-A sandboxed development environment for running AI coding agents with permissions bypass safely enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
+A sandboxed development environment for running AI coding agents without confirmation prompts, safely enabled. Built at [Trail of Bits](https://www.trailofbits.com/) for security audit workflows.
 
 > **Currently supported:** [Claude Code](https://claude.ai/code) and [pi](https://github.com/badlogic/pi-mono)
 >
-> This project is designed to be extensible—additional agents can be added by following the pattern in [Dockerfile](./Dockerfile) and [post_install.py](./post_install.py). See [#Contributing-a-New-Agent](#contributing-a-new-agent) for details.
+> This project is designed to be extensible—additional agents can be added by following the pattern in [Dockerfile](./Dockerfile) and [post_install.py](./post_install.py). See [#contributing-a-new-agent](#contributing-a-new-agent) for details.
 
 **Contents:** [Why Use This?](#why-use-this) • [Prerequisites](#prerequisites) • [Quick Start](#quick-start) • [Security Model](#security-model) • [Troubleshooting](#troubleshooting)
 
 ## Why Use This?
 
-Running AI coding agents with `bypassPermissions` on your host machine is risky—they can execute any command without confirmation. This devcontainer provides **filesystem isolation** so you get the productivity benefits of unrestricted AI agents without risking your host system.
+Running AI coding agents (like Claude Code with `bypassPermissions`) on your host machine is risky—they can execute any command without confirmation. This devcontainer provides **filesystem isolation** so you get the productivity benefits of unrestricted AI agents without risking your host system.
 
 **Designed for:**
 
@@ -26,10 +26,10 @@ Running AI coding agents with `bypassPermissions` on your host machine is risky�
 
 The following agents are pre-installed and configured:
 
-| Agent | Command | YOLO mode | Description |
-|-------|---------|-----------|-------------|
-| **Claude Code** | `claude` | `claude-yolo` | Anthropic's official agent with marketplace skills |
-| **pi** | `pi` | `pi-yolo` | Minimal, hackable agent with extensions & TypeScript SDK |
+| Agent | Command | Description |
+|-------|---------|-------------|
+| **Claude Code** | `claude` (or `claude-yolo`) | Anthropic's official agent with marketplace skills. Use `claude-yolo` to run without permission prompts. |
+| **pi** | `pi` | Minimal, hackable agent with extensions & TypeScript SDK. Runs without confirmation prompts by default. |
 
 *Want to add another agent? See the [contributing guide](#development) or open an issue.*
 
@@ -44,8 +44,8 @@ The following agents are pre-installed and configured:
 
   ```bash
   npm install -g @devcontainers/cli
-  git clone https://github.com/trailofbits/claude-code-devcontainer ~/.claude-devcontainer
-  ~/.claude-devcontainer/install.sh self-install
+  git clone https://github.com/MadhavM-117/agent-devcontainer ~/.agent-devcontainer
+  ~/.agent-devcontainer/install.sh self-install
   ```
 
 <details>
@@ -109,7 +109,7 @@ devc shell      # Opens shell in container
    devc .
 
    # Option B: Clone manually
-   git clone https://github.com/trailofbits/claude-code-devcontainer .devcontainer/
+   git clone https://github.com/MadhavM-117/agent-devcontainer .devcontainer/
    ```
 
 3. Open **your project folder** in VS Code, then:
@@ -149,7 +149,7 @@ devc template DIR   Copy devcontainer files to directory
 devc self-install   Install devc to ~/.local/bin
 ```
 
-> **Note:** The built-in `devc upgrade` currently only upgrades Claude Code. To upgrade pi or other agents, run `npm install -g @mariozechner/pi-coding-agent` inside the container, or rebuild with `devc rebuild`.
+> **Note:** The built-in `devc upgrade` currently only upgrades Claude Code. To upgrade pi or other agents, run their respective upgrade commands inside the container, or rebuild with `devc rebuild`.
 
 ## File Sharing
 
@@ -219,7 +219,7 @@ This devcontainer provides **filesystem isolation** but not complete sandboxing.
 
 **Not sandboxed:** Network (full outbound by default—see [Network Isolation](#network-isolation)), git identity (`~/.gitconfig` mounted read-only), Docker socket (not mounted by default)
 
-The container auto-configures permissions bypass mode for all installed agents (e.g., `bypassPermissions` for Claude Code, `PI_DISABLE_PERMISSIONS=true` for pi)—agents run commands without confirmation. This would be risky on a host machine, but the container itself is the sandbox. All agents are configured to deny access to `.devcontainer/**` to prevent self-modification of the sandbox configuration.
+Claude Code is configured with `bypassPermissions` to run commands without confirmation. Pi runs without confirmation prompts by default. This would be risky on a host machine, but the container itself is the sandbox. All agents are configured to deny access to `.devcontainer/**` to prevent self-modification of the sandbox configuration.
 
 ## Container Details
 
@@ -313,7 +313,7 @@ devcontainer exec --workspace-folder . zsh
 
 ### Contributing a New Agent
 
-To add support for another AI agent to this devcontainer:
+To add support for another AI agent to the agent-devcontainer:
 
 1. **Dockerfile**: Add installation commands and create the config directory
    ```dockerfile

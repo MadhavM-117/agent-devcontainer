@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Post-install configuration for Claude Code devcontainer.
+"""Post-install configuration for AI agent devcontainer.
 
 Runs on container creation to set up:
-- Claude settings (bypassPermissions mode)
+- Claude Code settings (bypassPermissions mode)
+- Pi path restrictions (protect sandbox configuration)
 - Tmux configuration (200k history, mouse support)
 - Directory ownership fixes for mounted volumes
 """
@@ -38,7 +39,7 @@ def setup_claude_settings():
 
 
 def setup_pi_settings():
-    """Configure pi coding agent with permissions matching Claude Code."""
+    """Configure pi coding agent with path restrictions to protect sandbox config."""
     pi_dir = Path.home() / ".pi" / "agent"
     pi_dir.mkdir(parents=True, exist_ok=True)
 
@@ -50,13 +51,13 @@ def setup_pi_settings():
         with contextlib.suppress(json.JSONDecodeError):
             settings = json.loads(settings_file.read_text())
 
-    # Add permission deny rules matching Claude config
+    # Add path deny rules to prevent modification of devcontainer sandbox config
     if "permission" not in settings:
         settings["permission"] = {}
     if "deny" not in settings["permission"]:
         settings["permission"]["deny"] = []
 
-    # Ensure .devcontainer is denied (matching claude settings)
+    # Ensure .devcontainer is denied (prevents sandbox self-modification)
     deny_patterns = settings["permission"]["deny"]
     if "Read(.devcontainer/**)" not in deny_patterns:
         deny_patterns.append("Read(.devcontainer/**)")

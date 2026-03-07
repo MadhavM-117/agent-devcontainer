@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Zsh configuration for Claude Code & Pi devcontainer
+# Zsh configuration for agent devcontainer
 
 # XDG Base Directory support
 export XDG_CONFIG_HOME="${HOME}/.config"
@@ -46,7 +46,6 @@ setopt ALWAYS_TO_END           # Move cursor to end after completion
 alias fd=fdfind
 alias sg=ast-grep
 alias claude-yolo='claude --dangerously-skip-permissions'
-alias pi-yolo='PI_DISABLE_PERMISSIONS=true pi'
 alias ll='ls -lah --color=auto'
 alias la='ls -A --color=auto'
 alias l='ls -CF --color=auto'
