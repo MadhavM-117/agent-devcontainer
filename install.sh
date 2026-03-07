@@ -120,6 +120,7 @@ extract_mounts_to_file() {
         (contains("target=/home/vscode/.claude,") | not) and
         (contains("target=/home/vscode/.pi,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
+        (contains("target=/home/vscode/.config/nvim,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
         (contains("target=/workspace/.devcontainer,") | not)
       )
@@ -174,6 +175,25 @@ update_devcontainer_mounts() {
   echo "$updated" >"$devcontainer_json"
 }
 
+auto_configure_local_nvim_mount() {
+  local devcontainer_json="$1"
+  local host_nvim_config="$HOME/.config/nvim"
+
+  case "${DEVC_DISABLE_LOCAL_NVIM:-0}" in
+  1 | true | TRUE | yes | YES)
+    log_info "Skipping local Neovim mount (DEVC_DISABLE_LOCAL_NVIM is set)"
+    return 0
+    ;;
+  esac
+
+  if [[ -d "$host_nvim_config" ]]; then
+    log_info "Detected local Neovim config: $host_nvim_config"
+    update_devcontainer_mounts "$devcontainer_json" "$host_nvim_config" "/home/vscode/.config/nvim" "true"
+  else
+    log_info "No local Neovim config found at $host_nvim_config; skipping mount"
+  fi
+}
+
 cmd_template() {
   local target_dir="${1:-.}"
   target_dir="$(cd "$target_dir" 2>/dev/null && pwd)" || {
@@ -215,6 +235,9 @@ cmd_template() {
     rm -f "$preserved_mounts"
     log_info "Custom mounts restored"
   fi
+
+  # Auto-mount host Neovim config when present (read-only)
+  auto_configure_local_nvim_mount "$devcontainer_json"
 
   log_success "Template installed to $devcontainer_dir"
 }
