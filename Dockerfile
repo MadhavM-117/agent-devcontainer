@@ -19,8 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ripgrep \
   tmux \
   zsh \
-  # Build tools
+  # Build tools (includes cmake, ninja-build, gettext for neovim)
   build-essential \
+  cmake \
+  ninja-build \
+  gettext \
   # Utilities
   jq \
   nano \
@@ -53,11 +56,19 @@ RUN ARCH=$(dpkg --print-architecture) && \
   esac && \
   curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
+# Build and install Neovim from latest stable source
+ARG NEOVIM_VERSION=0.10.4
+RUN git clone --depth 1 --branch "v${NEOVIM_VERSION}" https://github.com/neovim/neovim.git /tmp/neovim && \
+  cd /tmp/neovim && \
+  make CMAKE_BUILD_TYPE=Release && \
+  make install && \
+  rm -rf /tmp/neovim
+
 # Create directories and set ownership (combined for fewer layers)
-RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi/agent /opt && \
+RUN mkdir -p /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi/agent /home/vscode/.config/nvim /home/vscode/.config/zsh /home/vscode/.oh-my-zsh/custom /opt && \
   touch /commandhistory/.bash_history && \
   touch /commandhistory/.zsh_history && \
-  chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi /opt
+  chown -R vscode:vscode /commandhistory /workspace /home/vscode/.claude /home/vscode/.pi /home/vscode/.config /home/vscode/.oh-my-zsh /opt
 
 # Set environment variables
 ENV DEVCONTAINER=true
