@@ -1,6 +1,11 @@
 # shellcheck shell=bash
 # Zsh configuration for Claude Code & Pi devcontainer
 
+# Oh My Zsh (custom config, not generated defaults)
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="robbyrussell"
+plugins=(git)
+
 # Add Claude Code to PATH
 export PATH="$HOME/.local/bin:$PATH"
 
@@ -52,5 +57,10 @@ _fzf_compgen_dir() {
   fdfind --type d --hidden --follow --exclude .git . "$1"
 }
 
+# Load Oh My Zsh after custom settings are defined
+source $ZSH/oh-my-zsh.sh
+
 # Source fzf shell integration (built-in since fzf 0.48+)
 eval "$(fzf --zsh)"
+
+eval "$(starship init zsh)"

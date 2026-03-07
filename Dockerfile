@@ -119,11 +119,12 @@ RUN sh -c "$(curl -fsSL https://github.com/deluan/zsh-in-docker/releases/downloa
 	-p git \
 	-x
 
-# Copy zsh configuration
-COPY --chown=vscode:vscode .zshrc /home/vscode/.zshrc.custom
+# Install Starship prompt
+RUN mkdir -p /home/vscode/.local/bin && \
+	curl -sS https://starship.rs/install.sh | sh -s -- -y --bin-dir /home/vscode/.local/bin
 
-# Append custom zshrc to the main one
-RUN echo 'source ~/.zshrc.custom' >> /home/vscode/.zshrc
+# Copy zsh configuration
+COPY --chown=vscode:vscode .zshrc /home/vscode/.zshrc
 
 # Copy post_install script
 COPY --chown=vscode:vscode post_install.py /opt/post_install.py
