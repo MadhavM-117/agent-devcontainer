@@ -84,22 +84,7 @@ USER vscode
 # Set PATH early so claude and other user-installed binaries are available
 ENV PATH="/home/vscode/.local/bin:$PATH"
 
-# Install Claude Code natively with marketplace plugins
-RUN curl -fsSL https://claude.ai/install.sh | bash && \
-	claude plugin marketplace add anthropic/skills && \
-	claude plugin marketplace add trailofbits/skills && \
-	claude plugin marketplace add trailofbits/skills-curated
-
-# Install pi coding agent
-RUN npm install -g @mariozechner/pi-coding-agent
-
-# Install Python 3.13 via uv (fast binary download, not source compilation)
-RUN uv python install 3.13 --default
-
-# Install ast-grep (AST-based code search)
-RUN uv tool install ast-grep-cli
-
-# Install fnm (Fast Node Manager) and Node 24 (Active LTS)
+# Install fnm (Fast Node Manager) and Node 24 (Active LTS) - must be before npm install
 ARG NODE_VERSION=24
 ENV FNM_DIR="/home/vscode/.fnm"
 RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_DIR" --skip-shell && \
@@ -107,6 +92,26 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
 	eval "$(fnm env)" && \
 	fnm install ${NODE_VERSION} && \
 	fnm default ${NODE_VERSION}
+
+# Add fnm to PATH for subsequent RUN commands
+ENV PATH="/home/vscode/.fnm:$PATH"
+
+# Install Claude Code natively with marketplace plugins
+RUN curl -fsSL https://claude.ai/install.sh | bash && \
+	claude plugin marketplace add trailofbits/skills && \
+	claude plugin marketplace add trailofbits/skills-curated
+
+# TODO: add this back once the issue is fixed. Refer https://github.com/anthropics/claude-code/issues/14360
+# RUN claude plugin marketplace add anthropic/skills 
+
+# Install pi coding agent (use fnm exec to ensure Node.js environment is active)
+RUN eval "$(fnm env --shell bash)" && npm install -g @mariozechner/pi-coding-agent
+
+# Install Python 3.13 via uv (fast binary download, not source compilation)
+RUN uv python install 3.13 --default
+
+# Install ast-grep (AST-based code search)
+RUN uv tool install ast-grep-cli
 
 # Install Oh My Zsh
 ARG ZSH_IN_DOCKER_VERSION=1.2.1
