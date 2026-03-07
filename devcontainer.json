@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Agent Devcontainer",
+  "name": "Claude Code & Pi Sandbox",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
@@ -42,13 +42,10 @@
   },
   "remoteUser": "vscode",
   "mounts": [
-    "source=agent-devcontainer-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=agent-devcontainer-claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
-    "source=agent-devcontainer-pi-config-${devcontainerId},target=/home/vscode/.pi,type=volume",
-    "source=agent-devcontainer-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
-    "source=${localEnv:HOME}/.config/nvim,target=/home/vscode/.config/nvim,type=bind",
-    "source=${localEnv:HOME}/.config/zsh,target=/home/vscode/.config/zsh,type=bind",
-    "source=${localEnv:HOME}/.oh-my-zsh/custom,target=/home/vscode/.oh-my-zsh/custom,type=bind",
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    "source=pi-config-${devcontainerId},target=/home/vscode/.pi,type=volume",
+    "source=claude-code-gh-${devcontainerId},target=/home/vscode/.config/gh,type=volume",
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,readonly",
     "source=${localWorkspaceFolder}/.devcontainer,target=/workspace/.devcontainer,type=bind,readonly"
   ],
@@ -56,7 +53,7 @@
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "PI_CONFIG_DIR": "/home/vscode/.pi",
-    "ZDOTDIR": "/home/vscode/.config/zsh",
+    "PI_DISABLE_PERMISSIONS": "true",
     "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
     "GIT_CONFIG_GLOBAL": "/home/vscode/.gitconfig.local",
     "UV_LINK_MODE": "copy",

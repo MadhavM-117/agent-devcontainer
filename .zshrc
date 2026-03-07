@@ -1,21 +1,8 @@
 # shellcheck shell=bash
-# Zsh configuration for agent devcontainer
-
-# XDG Base Directory support
-export XDG_CONFIG_HOME="${HOME}/.config"
-export XDG_DATA_HOME="${HOME}/.local/share"
-export XDG_CACHE_HOME="${HOME}/.cache"
-
-# Set ZDOTDIR if using XDG location (devcontainer sets this)
-# Fall back to home if not set
-ZDOTDIR="${ZDOTDIR:-$HOME}"
+# Zsh configuration for Claude Code & Pi devcontainer
 
 # Add Claude Code to PATH
 export PATH="$HOME/.local/bin:$PATH"
-
-# Default editor (neovim)
-export EDITOR="nvim"
-export VISUAL="nvim"
 
 # fnm (Fast Node Manager)
 export FNM_DIR="$HOME/.fnm"

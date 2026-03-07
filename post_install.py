@@ -35,7 +35,9 @@ def setup_claude_settings():
     settings["permissions"]["defaultMode"] = "bypassPermissions"
 
     settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
-    print(f"[post_install] Claude settings configured: {settings_file}", file=sys.stderr)
+    print(
+        f"[post_install] Claude settings configured: {settings_file}", file=sys.stderr
+    )
 
 
 def setup_pi_settings():
@@ -64,82 +66,6 @@ def setup_pi_settings():
 
     settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     print(f"[post_install] Pi settings configured: {settings_file}", file=sys.stderr)
-
-
-def setup_zsh_config():
-    """Set up zsh configuration with XDG fallback.
-
-    Checks if ~/.config/zsh (mounted from host) has content.
-    If yes, use it as ZDOTDIR. If no, ensure ~/.zshrc exists
-    as fallback. Also ensures oh-my-zsh custom directory has
-    correct ownership.
-    """
-    home = Path.home()
-    xdg_zsh_dir = home / ".config" / "zsh"
-    xdg_zshrc = xdg_zsh_dir / ".zshrc"
-    home_zshrc = home / ".zshrc"
-    omz_custom = home / ".oh-my-zsh" / "custom"
-
-    # Check if host has zsh config in XDG location
-    has_xdg_config = xdg_zsh_dir.exists() and any(xdg_zsh_dir.iterdir())
-
-    if has_xdg_config:
-        # Ensure .zshrc exists in XDG location (source the built-in custom config)
-        if not xdg_zshrc.exists():
-            # Create minimal .zshrc that sources oh-my-zsh and our custom config
-            xdg_zshrc.write_text(
-                '# Host zsh config\n'
-                '# This file is sourced when ZDOTDIR is set to ~/.config/zsh\n\n'
-                '# Source oh-my-zsh if available\n'
-                'if [[ -f ~/.oh-my-zsh/oh-my-zsh.sh ]]; then\n'
-                '  source ~/.oh-my-zsh/oh-my-zsh.sh\n'
-                'fi\n\n'
-                '# Source devcontainer custom config\n'
-                '[[ -f ~/.zshrc.custom ]] && source ~/.zshrc.custom\n',
-                encoding="utf-8"
-            )
-            print(f"[post_install] Created XDG zshrc: {xdg_zshrc}", file=sys.stderr)
-        else:
-            print(f"[post_install] Using host XDG zsh config: {xdg_zsh_dir}", file=sys.stderr)
-    else:
-        # Fallback: ensure ~/.zshrc exists (oh-my-zsh should have created it)
-        # Just ensure it sources our custom config
-        if home_zshrc.exists():
-            content = home_zshrc.read_text(encoding="utf-8")
-            if ".zshrc.custom" not in content:
-                home_zshrc.write_text(
-                    content + "\n# Source devcontainer custom config\n"
-                    "[[ -f ~/.zshrc.custom ]] && source ~/.zshrc.custom\n",
-                    encoding="utf-8"
-                )
-                print(f"[post_install] Updated home zshrc to source custom config", file=sys.stderr)
-        else:
-            # Create minimal zshrc
-            home_zshrc.write_text(
-                '# Minimal zshrc\n'
-                '[[ -f ~/.zshrc.custom ]] && source ~/.zshrc.custom\n',
-                encoding="utf-8"
-            )
-            print(f"[post_install] Created fallback zshrc: {home_zshrc}", file=sys.stderr)
-
-    # Fix oh-my-zsh custom directory ownership
-    if omz_custom.exists():
-        uid = os.getuid()
-        gid = os.getgid()
-        try:
-            stat_info = omz_custom.stat()
-            if stat_info.st_uid != uid:
-                subprocess.run(
-                    ["sudo", "chown", "-R", f"{uid}:{gid}", str(omz_custom)],
-                    check=True,
-                    capture_output=True,
-                )
-                print(f"[post_install] Fixed omz custom ownership: {omz_custom}", file=sys.stderr)
-        except (PermissionError, subprocess.CalledProcessError) as e:
-            print(
-                f"[post_install] Warning: Could not fix omz custom ownership: {e}",
-                file=sys.stderr,
-            )
 
 
 def setup_tmux_config():
@@ -199,8 +125,6 @@ def fix_directory_ownership():
         Path("/commandhistory"),
         Path.home() / ".config" / "gh",
         Path.home() / ".config" / "nvim",
-        Path.home() / ".config" / "zsh",
-        Path.home() / ".oh-my-zsh" / "custom",
     ]
 
     for dir_path in dirs_to_fix:
@@ -214,7 +138,9 @@ def fix_directory_ownership():
                         check=True,
                         capture_output=True,
                     )
-                    print(f"[post_install] Fixed ownership: {dir_path}", file=sys.stderr)
+                    print(
+                        f"[post_install] Fixed ownership: {dir_path}", file=sys.stderr
+                    )
             except (PermissionError, subprocess.CalledProcessError) as e:
                 print(
                     f"[post_install] Warning: Could not fix ownership of {dir_path}: {e}",
@@ -312,7 +238,9 @@ node_modules/
     program = /usr/bin/ssh-keygen
 """
     local_gitconfig.write_text(local_config, encoding="utf-8")
-    print(f"[post_install] Local git config created: {local_gitconfig}", file=sys.stderr)
+    print(
+        f"[post_install] Local git config created: {local_gitconfig}", file=sys.stderr
+    )
 
 
 def main():
@@ -321,7 +249,6 @@ def main():
 
     setup_claude_settings()
     setup_pi_settings()
-    setup_zsh_config()
     setup_tmux_config()
     fix_directory_ownership()
     setup_global_gitignore()
