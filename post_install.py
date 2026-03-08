@@ -19,6 +19,48 @@ import sys
 from pathlib import Path
 
 
+def clear_directory_contents(path: Path):
+    """Remove all children inside a directory without removing the directory itself.
+
+    This is safe for mount points (e.g. Docker volume targets), where removing
+    the directory root can fail with EBUSY.
+    """
+    path.mkdir(parents=True, exist_ok=True)
+
+    for child in path.iterdir():
+        try:
+            if child.is_symlink() or child.is_file():
+                child.unlink()
+            elif child.is_dir():
+                shutil.rmtree(child)
+            else:
+                # Fallback for uncommon filesystem entry types
+                child.unlink(missing_ok=True)
+        except Exception as e:
+            print(
+                f"[post_install] Warning: Could not remove {child}: {e}",
+                file=sys.stderr,
+            )
+
+
+def copy_directory_contents(src: Path, dst: Path):
+    """Copy children from src directory into dst directory."""
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for child in src.iterdir():
+        target = dst / child.name
+        try:
+            if child.is_dir() and not child.is_symlink():
+                shutil.copytree(child, target, symlinks=True)
+            else:
+                shutil.copy2(child, target, follow_symlinks=False)
+        except Exception as e:
+            print(
+                f"[post_install] Warning: Could not copy {child} to {target}: {e}",
+                file=sys.stderr,
+            )
+
+
 def setup_claude_settings():
     """Configure Claude Code with bypassPermissions enabled."""
     claude_dir = Path.home() / ".claude"
@@ -102,12 +144,13 @@ def setup_agent_configs():
             file=sys.stderr,
         )
     elif host_claude.exists() and host_claude.is_dir():
-        if container_claude.exists() and not container_claude.is_symlink():
-            shutil.rmtree(container_claude)
-        elif container_claude.is_symlink() or container_claude.is_file():
+        if container_claude.is_symlink() or container_claude.is_file():
             container_claude.unlink()
+            container_claude.mkdir(parents=True, exist_ok=True)
+        else:
+            clear_directory_contents(container_claude)
 
-        shutil.copytree(host_claude, container_claude, symlinks=True)
+        copy_directory_contents(host_claude, container_claude)
         print(
             f"[post_install] Imported host Claude config to writable path: {container_claude}",
             file=sys.stderr,
@@ -124,12 +167,13 @@ def setup_agent_configs():
             file=sys.stderr,
         )
     elif host_pi.exists() and host_pi.is_dir():
-        if container_pi.exists() and not container_pi.is_symlink():
-            shutil.rmtree(container_pi)
-        elif container_pi.is_symlink() or container_pi.is_file():
+        if container_pi.is_symlink() or container_pi.is_file():
             container_pi.unlink()
+            container_pi.mkdir(parents=True, exist_ok=True)
+        else:
+            clear_directory_contents(container_pi)
 
-        shutil.copytree(host_pi, container_pi, symlinks=True)
+        copy_directory_contents(host_pi, container_pi)
         print(
             f"[post_install] Imported host pi config to writable path: {container_pi}",
             file=sys.stderr,
