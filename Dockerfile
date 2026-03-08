@@ -57,7 +57,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 	curl -fsSL "https://github.com/junegunn/fzf/releases/download/v${FZF_VERSION}/fzf-${FZF_VERSION}-${FZF_ARCH}.tar.gz" | tar -xz -C /usr/local/bin
 
 # Build and install Neovim from latest stable source
-ARG NEOVIM_VERSION=0.10.4
+ARG NEOVIM_VERSION=0.11.6
 RUN git clone --depth 1 --branch "v${NEOVIM_VERSION}" https://github.com/neovim/neovim.git /tmp/neovim && \
 	cd /tmp/neovim && \
 	make CMAKE_BUILD_TYPE=Release && \
@@ -75,6 +75,9 @@ ENV DEVCONTAINER=true
 ENV SHELL=/bin/zsh
 ENV EDITOR=nano
 ENV VISUAL=nano
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+ENV LANGUAGE=en_US:en
 
 WORKDIR /workspace
 
