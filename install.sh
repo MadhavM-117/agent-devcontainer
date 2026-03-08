@@ -119,6 +119,8 @@ extract_mounts_to_file() {
         (contains("target=/commandhistory,") | not) and
         (contains("target=/home/vscode/.claude,") | not) and
         (contains("target=/home/vscode/.pi,") | not) and
+        (contains("target=/home/vscode/.claude-host,") | not) and
+        (contains("target=/home/vscode/.pi-host,") | not) and
         (contains("target=/home/vscode/.config/gh,") | not) and
         (contains("target=/home/vscode/.config/nvim,") | not) and
         (contains("target=/home/vscode/.config/nvim-host,") | not) and
@@ -176,6 +178,47 @@ update_devcontainer_mounts() {
   ' "$devcontainer_json")
 
   echo "$updated" >"$devcontainer_json"
+}
+
+auto_configure_local_agent_mounts() {
+  local devcontainer_json="$1"
+  local host_claude_config="$HOME/.claude"
+  local host_pi_config="$HOME/.pi"
+
+  case "${DEVC_DISABLE_LOCAL_AGENTS:-0}" in
+  1 | true | TRUE | yes | YES)
+    log_info "Skipping local agent mounts (DEVC_DISABLE_LOCAL_AGENTS is set)"
+    return 0
+    ;;
+  esac
+
+  case "${DEVC_DISABLE_LOCAL_CLAUDE:-0}" in
+  1 | true | TRUE | yes | YES)
+    log_info "Skipping local Claude mount (DEVC_DISABLE_LOCAL_CLAUDE is set)"
+    ;;
+  *)
+    if [[ -d "$host_claude_config" ]]; then
+      log_info "Detected local Claude config: $host_claude_config"
+      update_devcontainer_mounts "$devcontainer_json" "$host_claude_config" "/home/vscode/.claude-host" "true"
+    else
+      log_info "No local Claude config found at $host_claude_config; skipping mount"
+    fi
+    ;;
+  esac
+
+  case "${DEVC_DISABLE_LOCAL_PI:-0}" in
+  1 | true | TRUE | yes | YES)
+    log_info "Skipping local pi mount (DEVC_DISABLE_LOCAL_PI is set)"
+    ;;
+  *)
+    if [[ -d "$host_pi_config" ]]; then
+      log_info "Detected local pi config: $host_pi_config"
+      update_devcontainer_mounts "$devcontainer_json" "$host_pi_config" "/home/vscode/.pi-host" "true"
+    else
+      log_info "No local pi config found at $host_pi_config; skipping mount"
+    fi
+    ;;
+  esac
 }
 
 auto_configure_local_nvim_mount() {
@@ -265,6 +308,9 @@ cmd_template() {
     rm -f "$preserved_mounts"
     log_info "Custom mounts restored"
   fi
+
+  # Auto-mount host agent configs when present (read-only)
+  auto_configure_local_agent_mounts "$devcontainer_json"
 
   # Auto-mount host Neovim config when present (read-only)
   auto_configure_local_nvim_mount "$devcontainer_json"

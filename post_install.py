@@ -4,6 +4,7 @@
 Runs on container creation to set up:
 - Claude Code settings (bypassPermissions mode)
 - Pi path restrictions (protect sandbox configuration)
+- Optional read-only host agent config mounts copied to writable paths
 - Tmux configuration (default or optional host import)
 - Writable Neovim config import from optional host mount
 - Directory ownership fixes for mounted volumes
@@ -68,6 +69,76 @@ def setup_pi_settings():
 
     settings_file.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
     print(f"[post_install] Pi settings configured: {settings_file}", file=sys.stderr)
+
+
+def setup_agent_configs():
+    """Set up writable agent configs in container from optional host mounts.
+
+    If ~/.claude-host and/or ~/.pi-host exist (read-only host bind mounts), copy
+    them into writable in-container paths (~/.claude and ~/.pi).
+
+    Behavior can be disabled with DEVC_DISABLE_LOCAL_CLAUDE=1/true/yes and
+    DEVC_DISABLE_LOCAL_PI=1/true/yes.
+    """
+    disable_agents = os.environ.get("DEVC_DISABLE_LOCAL_AGENTS", "0").lower()
+    disable_claude = os.environ.get("DEVC_DISABLE_LOCAL_CLAUDE", "0").lower()
+    disable_pi = os.environ.get("DEVC_DISABLE_LOCAL_PI", "0").lower()
+
+    if disable_agents in {"1", "true", "yes"}:
+        print(
+            "[post_install] Skipping agent host config import (DEVC_DISABLE_LOCAL_AGENTS is set)",
+            file=sys.stderr,
+        )
+        return
+
+    host_claude = Path.home() / ".claude-host"
+    host_pi = Path.home() / ".pi-host"
+    container_claude = Path.home() / ".claude"
+    container_pi = Path.home() / ".pi"
+
+    if disable_claude in {"1", "true", "yes"}:
+        print(
+            "[post_install] Skipping Claude host config import (DEVC_DISABLE_LOCAL_CLAUDE is set)",
+            file=sys.stderr,
+        )
+    elif host_claude.exists() and host_claude.is_dir():
+        if container_claude.exists() and not container_claude.is_symlink():
+            shutil.rmtree(container_claude)
+        elif container_claude.is_symlink() or container_claude.is_file():
+            container_claude.unlink()
+
+        shutil.copytree(host_claude, container_claude, symlinks=True)
+        print(
+            f"[post_install] Imported host Claude config to writable path: {container_claude}",
+            file=sys.stderr,
+        )
+    elif host_claude.exists():
+        print(
+            f"[post_install] Host Claude mount is not a directory: {host_claude}; skipping",
+            file=sys.stderr,
+        )
+
+    if disable_pi in {"1", "true", "yes"}:
+        print(
+            "[post_install] Skipping pi host config import (DEVC_DISABLE_LOCAL_PI is set)",
+            file=sys.stderr,
+        )
+    elif host_pi.exists() and host_pi.is_dir():
+        if container_pi.exists() and not container_pi.is_symlink():
+            shutil.rmtree(container_pi)
+        elif container_pi.is_symlink() or container_pi.is_file():
+            container_pi.unlink()
+
+        shutil.copytree(host_pi, container_pi, symlinks=True)
+        print(
+            f"[post_install] Imported host pi config to writable path: {container_pi}",
+            file=sys.stderr,
+        )
+    elif host_pi.exists():
+        print(
+            f"[post_install] Host pi mount is not a directory: {host_pi}; skipping",
+            file=sys.stderr,
+        )
 
 
 def setup_default_tmux_config():
@@ -189,6 +260,7 @@ def fix_directory_ownership():
 
     dirs_to_fix = [
         Path.home() / ".claude",
+        Path.home() / ".pi",
         Path("/commandhistory"),
         Path.home() / ".config" / "gh",
         Path.home() / ".config" / "nvim",
@@ -365,11 +437,12 @@ def main():
     """Run all post-install configuration."""
     print("[post_install] Starting post-install configuration...", file=sys.stderr)
 
+    fix_directory_ownership()
+    setup_agent_configs()
     setup_claude_settings()
     setup_pi_settings()
     setup_tmux_config()
     setup_nvim_config()
-    fix_directory_ownership()
     setup_global_gitignore()
 
     print("[post_install] Configuration complete!", file=sys.stderr)

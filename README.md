@@ -172,6 +172,46 @@ This adds a bind mount to `devcontainer.json` and recreates the container. Exist
 
 > **Security note:** Avoid mounting large host directories (e.g., `$HOME`). Every mounted path is writable from inside the container unless `--readonly` is specified, which undermines the filesystem isolation this project provides.
 
+### Agent configs in the container (optional host import)
+
+By default, agent configs are persisted in Docker volumes (`~/.claude`, `~/.pi`).
+
+If host agent import is enabled (default in the `devc` workflow), those writable paths are treated as **bootstrap targets**: host configs are mounted read-only and copied in during post-create.
+
+When you run `devc .` or `devc template`, the helper auto-detects host agent config paths and (if present) mounts them read-only:
+
+- `~/.claude` → `~/.claude-host`
+- `~/.pi` → `~/.pi-host`
+
+During post-create, mounted host configs are copied into writable in-container paths (`~/.claude`, `~/.pi`). This keeps host configs read-only while preserving normal in-container agent behavior.
+
+```mermaid
+flowchart LR
+    H1[Host ~/.claude] -- read-only bind --> C1[/home/vscode/.claude-host]
+    H2[Host ~/.pi] -- read-only bind --> C2[/home/vscode/.pi-host]
+
+    C1 -- post_create copy --> W1[Writable ~/.claude\n(Docker volume target)]
+    C2 -- post_create copy --> W2[Writable ~/.pi\n(Docker volume target)]
+
+    A1[Claude Code] --> W1
+    A2[pi agent] --> W2
+```
+
+To disable host agent import:
+
+```bash
+DEVC_DISABLE_LOCAL_AGENTS=1
+```
+
+before running `devc .` / `devc template`.
+
+To disable one agent only:
+
+```bash
+DEVC_DISABLE_LOCAL_CLAUDE=1  # disable Claude host import
+DEVC_DISABLE_LOCAL_PI=1      # disable pi host import
+```
+
 ### Neovim in the container (optional host config)
 
 Neovim is usable in the container out of the box. When you run `devc .` or `devc template`, the helper auto-detects a host config at `~/.config/nvim` and (if present) mounts it read-only to `~/.config/nvim-host` in the container, then copies it to a writable `~/.config/nvim` during post-create.
@@ -260,20 +300,20 @@ Claude Code is configured with `bypassPermissions` to run commands without confi
 | User | `vscode` (passwordless sudo), working dir `/workspace` |
 | Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `iptables`, `ipset` |
 | AI Agents | Claude Code, [pi](https://github.com/badlogic/pi-mono) (more can be added) |
-| Volumes (survive rebuilds) | Command history (`/commandhistory`), agent configs (`~/.claude`, `~/.pi`), GitHub CLI auth (`~/.config/gh`) |
-| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only), optional `~/.config/nvim` import via `~/.config/nvim-host`, optional tmux import via `~/.tmux-host` and `~/.tmux.conf-host` |
-| Auto-configured | Claude skills (anthropics, trailofbits), git-delta, optional writable Neovim config copy, tmux defaults or optional writable host tmux import |
+| Volumes (survive rebuilds) | Command history (`/commandhistory`), writable agent config targets (`~/.claude`, `~/.pi`), GitHub CLI auth (`~/.config/gh`) |
+| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only), optional agent imports via `~/.claude-host` and `~/.pi-host` (both read-only), optional `~/.config/nvim` import via `~/.config/nvim-host`, optional tmux import via `~/.tmux-host` and `~/.tmux.conf-host` |
+| Auto-configured | Claude skills (anthropics, trailofbits), git-delta, optional writable agent config copy from host mounts, optional writable Neovim config copy, tmux defaults or optional writable host tmux import |
 
-Volumes are stored outside the container, so your shell history, agent settings, and `gh` login persist even after `devc rebuild`. Host `~/.gitconfig` is mounted read-only for git identity.
+Volumes are stored outside the container, so your shell history and `gh` login persist even after `devc rebuild`. Agent target paths (`~/.claude`, `~/.pi`) are writable in-container; when host import is enabled, they are populated from read-only host mounts during post-create. Host `~/.gitconfig` is mounted read-only for git identity.
 
 ### Per-Agent Configuration
 
-Each agent has its own configuration directory mounted as a volume:
+Each agent uses a writable in-container config path (Docker volume target), with optional read-only host import:
 
-| Agent | Config Path | Environment Variable |
-|-------|-------------|---------------------|
-| Claude Code | `~/.claude` | `CLAUDE_CONFIG_DIR` |
-| pi | `~/.pi` | `PI_CONFIG_DIR` |
+| Agent | Writable Config Path | Optional Host Import (read-only) | Environment Variable |
+|-------|----------------------|-----------------------------------|---------------------|
+| Claude Code | `~/.claude` | `~/.claude-host` (from host `~/.claude`) | `CLAUDE_CONFIG_DIR` |
+| pi | `~/.pi` | `~/.pi-host` (from host `~/.pi`) | `PI_CONFIG_DIR` |
 
 ## Troubleshooting
 
@@ -291,7 +331,7 @@ npm install -g @devcontainers/cli
 
 ### Agent configuration not persisting
 
-Each agent stores config in its own volume. If ownership is wrong:
+By default, each agent stores config in its own volume. If ownership is wrong:
 
 ```bash
 # Fix Claude Code config
@@ -303,6 +343,8 @@ sudo chown -R $(id -u):$(id -g) ~/.pi
 # Fix GitHub CLI auth
 sudo chown -R $(id -u):$(id -g) ~/.config/gh
 ```
+
+If you enabled host agent import, ensure host paths exist (`~/.claude`, `~/.pi`) before running `devc .` / `devc template`.
 
 ### Neovim config not appearing in container
 
@@ -330,6 +372,28 @@ To explicitly disable host tmux import and use defaults:
 
 ```bash
 DEVC_DISABLE_LOCAL_TMUX=1 devc .
+```
+
+### Agent configs not importing from host
+
+The host agent import only applies to the `devc` workflow (`devc .` / `devc template`).
+
+- Ensure host paths exist at `~/.claude` and/or `~/.pi`
+- Ensure `DEVC_DISABLE_LOCAL_AGENTS` is not set to `1`, `true`, or `yes`
+- Ensure per-agent disables (`DEVC_DISABLE_LOCAL_CLAUDE`, `DEVC_DISABLE_LOCAL_PI`) are not set for the agent you want
+- Recreate/rebuild after changes: `devc rebuild`
+
+To explicitly disable host agent import:
+
+```bash
+DEVC_DISABLE_LOCAL_AGENTS=1 devc .
+```
+
+To disable one agent only:
+
+```bash
+DEVC_DISABLE_LOCAL_CLAUDE=1 devc .
+DEVC_DISABLE_LOCAL_PI=1 devc .
 ```
 
 ### Python/uv not working
