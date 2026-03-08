@@ -8,6 +8,11 @@ A sandboxed development environment for running AI coding agents without confirm
 >
 > This project is designed to be extensible—additional agents can be added by following the pattern in [Dockerfile](./Dockerfile) and [post_install.py](./post_install.py). See [#contributing-a-new-agent](#contributing-a-new-agent) for details.
 
+> [!WARNING]
+> This repository has diverged significantly from its upstream fork and has not undergone a formal independent security review for those changes. It should not be assumed to withstand full security scrutiny in its current form.
+>
+> A self-conducted security review is available in the repository at [`docs/audits/security-audit-2026-03-08.md`](./docs/audits/security-audit-2026-03-08.md).
+
 **Contents:** [Why Use This?](#why-use-this) • [Prerequisites](#prerequisites) • [Quick Start](#quick-start) • [Security Model](#security-model) • [Troubleshooting](#troubleshooting)
 
 ## Why Use This?
