@@ -4,7 +4,7 @@
 Runs on container creation to set up:
 - Claude Code settings (bypassPermissions mode)
 - Pi path restrictions (protect sandbox configuration)
-- Tmux configuration (200k history, mouse support)
+- Tmux configuration (default or optional host import)
 - Writable Neovim config import from optional host mount
 - Directory ownership fixes for mounted volumes
 """
@@ -70,12 +70,12 @@ def setup_pi_settings():
     print(f"[post_install] Pi settings configured: {settings_file}", file=sys.stderr)
 
 
-def setup_tmux_config():
-    """Configure tmux with 200k history, mouse support, and vi keys."""
+def setup_default_tmux_config():
+    """Configure tmux with sensible defaults."""
     tmux_conf = Path.home() / ".tmux.conf"
 
     if tmux_conf.exists():
-        print("[post_install] Tmux config exists, skipping", file=sys.stderr)
+        print("[post_install] Tmux config exists, skipping defaults", file=sys.stderr)
         return
 
     config = """\
@@ -114,7 +114,72 @@ set -g status-left '[#S] '
 set -g status-right '%Y-%m-%d %H:%M'
 """
     tmux_conf.write_text(config, encoding="utf-8")
-    print(f"[post_install] Tmux configured: {tmux_conf}", file=sys.stderr)
+    print(f"[post_install] Default tmux config written: {tmux_conf}", file=sys.stderr)
+
+
+def setup_tmux_config():
+    """Set up writable tmux config from optional host mounts.
+
+    If ~/.tmux-host and/or ~/.tmux.conf-host exist (read-only host bind mounts),
+    copy them into writable in-container paths (~/.tmux and ~/.tmux.conf).
+
+    Behavior can be disabled with DEVC_DISABLE_LOCAL_TMUX=1/true/yes, in which
+    case the existing default tmux config behavior is applied.
+    """
+    disable = os.environ.get("DEVC_DISABLE_LOCAL_TMUX", "0").lower()
+    if disable in {"1", "true", "yes"}:
+        print(
+            "[post_install] Skipping tmux host import (DEVC_DISABLE_LOCAL_TMUX is set)",
+            file=sys.stderr,
+        )
+        setup_default_tmux_config()
+        return
+
+    host_tmux_dir = Path.home() / ".tmux-host"
+    host_tmux_conf = Path.home() / ".tmux.conf-host"
+    container_tmux_dir = Path.home() / ".tmux"
+    container_tmux_conf = Path.home() / ".tmux.conf"
+
+    imported_any = False
+
+    if host_tmux_dir.exists() and host_tmux_dir.is_dir():
+        if container_tmux_dir.exists() and not container_tmux_dir.is_symlink():
+            shutil.rmtree(container_tmux_dir)
+        elif container_tmux_dir.is_symlink() or container_tmux_dir.is_file():
+            container_tmux_dir.unlink()
+
+        shutil.copytree(host_tmux_dir, container_tmux_dir, symlinks=True)
+        imported_any = True
+        print(
+            f"[post_install] Imported host tmux directory to writable path: {container_tmux_dir}",
+            file=sys.stderr,
+        )
+    elif host_tmux_dir.exists():
+        print(
+            f"[post_install] Host tmux mount is not a directory: {host_tmux_dir}; skipping",
+            file=sys.stderr,
+        )
+
+    if host_tmux_conf.exists() and host_tmux_conf.is_file():
+        container_tmux_conf.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(host_tmux_conf, container_tmux_conf)
+        imported_any = True
+        print(
+            f"[post_install] Imported host tmux config to writable path: {container_tmux_conf}",
+            file=sys.stderr,
+        )
+    elif host_tmux_conf.exists():
+        print(
+            f"[post_install] Host tmux config mount is not a file: {host_tmux_conf}; skipping",
+            file=sys.stderr,
+        )
+
+    if not imported_any:
+        print(
+            "[post_install] No host tmux config mounts found; applying default tmux config",
+            file=sys.stderr,
+        )
+        setup_default_tmux_config()
 
 
 def fix_directory_ownership():
@@ -128,6 +193,8 @@ def fix_directory_ownership():
         Path.home() / ".config" / "gh",
         Path.home() / ".config" / "nvim",
         Path.home() / ".config" / "nvim-host",
+        Path.home() / ".tmux",
+        Path.home() / ".tmux-host",
     ]
 
     for dir_path in dirs_to_fix:

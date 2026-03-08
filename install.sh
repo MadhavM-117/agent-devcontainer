@@ -122,6 +122,8 @@ extract_mounts_to_file() {
         (contains("target=/home/vscode/.config/gh,") | not) and
         (contains("target=/home/vscode/.config/nvim,") | not) and
         (contains("target=/home/vscode/.config/nvim-host,") | not) and
+        (contains("target=/home/vscode/.tmux-host,") | not) and
+        (contains("target=/home/vscode/.tmux.conf-host,") | not) and
         (contains("target=/home/vscode/.gitconfig,") | not) and
         (contains("target=/workspace/.devcontainer,") | not)
       )
@@ -195,6 +197,33 @@ auto_configure_local_nvim_mount() {
   fi
 }
 
+auto_configure_local_tmux_mounts() {
+  local devcontainer_json="$1"
+  local host_tmux_dir="$HOME/.tmux"
+  local host_tmux_conf="$HOME/.tmux.conf"
+
+  case "${DEVC_DISABLE_LOCAL_TMUX:-0}" in
+  1 | true | TRUE | yes | YES)
+    log_info "Skipping local tmux mounts (DEVC_DISABLE_LOCAL_TMUX is set)"
+    return 0
+    ;;
+  esac
+
+  if [[ -d "$host_tmux_dir" ]]; then
+    log_info "Detected local tmux directory: $host_tmux_dir"
+    update_devcontainer_mounts "$devcontainer_json" "$host_tmux_dir" "/home/vscode/.tmux-host" "true"
+  else
+    log_info "No local tmux directory found at $host_tmux_dir; skipping mount"
+  fi
+
+  if [[ -f "$host_tmux_conf" ]]; then
+    log_info "Detected local tmux config: $host_tmux_conf"
+    update_devcontainer_mounts "$devcontainer_json" "$host_tmux_conf" "/home/vscode/.tmux.conf-host" "true"
+  else
+    log_info "No local tmux config found at $host_tmux_conf; skipping mount"
+  fi
+}
+
 cmd_template() {
   local target_dir="${1:-.}"
   target_dir="$(cd "$target_dir" 2>/dev/null && pwd)" || {
@@ -239,6 +268,9 @@ cmd_template() {
 
   # Auto-mount host Neovim config when present (read-only)
   auto_configure_local_nvim_mount "$devcontainer_json"
+
+  # Auto-mount host tmux config/plugins when present (read-only)
+  auto_configure_local_tmux_mounts "$devcontainer_json"
 
   log_success "Template installed to $devcontainer_dir"
 }

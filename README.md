@@ -186,6 +186,23 @@ DEVC_DISABLE_LOCAL_NVIM=1
 
 before running `devc .` / `devc template`.
 
+### tmux in the container (optional host config/plugins)
+
+tmux works out of the box with a default `~/.tmux.conf` generated during post-create. When you run `devc .` or `devc template`, the helper also auto-detects host tmux paths and (if present) mounts them read-only:
+
+- `~/.tmux` → `~/.tmux-host`
+- `~/.tmux.conf` → `~/.tmux.conf-host`
+
+During post-create, mounted host tmux config/plugins are copied into writable in-container paths (`~/.tmux`, `~/.tmux.conf`). If no host tmux mounts are found, the existing default tmux config behavior is used.
+
+To disable host tmux import and always use the default tmux config behavior, set:
+
+```bash
+DEVC_DISABLE_LOCAL_TMUX=1
+```
+
+before running `devc .` / `devc template`.
+
 ## Network Isolation
 
 By default, containers have full outbound network access. For stricter security, use iptables to restrict network access.
@@ -244,8 +261,8 @@ Claude Code is configured with `bypassPermissions` to run commands without confi
 | Tools | `rg`, `fd`, `tmux`, `fzf`, `delta`, `iptables`, `ipset` |
 | AI Agents | Claude Code, [pi](https://github.com/badlogic/pi-mono) (more can be added) |
 | Volumes (survive rebuilds) | Command history (`/commandhistory`), agent configs (`~/.claude`, `~/.pi`), GitHub CLI auth (`~/.config/gh`) |
-| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only), optional `~/.config/nvim` import via `~/.config/nvim-host` |
-| Auto-configured | Claude skills (anthropics, trailofbits), git-delta, optional writable Neovim config copy |
+| Host mounts | `~/.gitconfig` (read-only), `.devcontainer/` (read-only), optional `~/.config/nvim` import via `~/.config/nvim-host`, optional tmux import via `~/.tmux-host` and `~/.tmux.conf-host` |
+| Auto-configured | Claude skills (anthropics, trailofbits), git-delta, optional writable Neovim config copy, tmux defaults or optional writable host tmux import |
 
 Volumes are stored outside the container, so your shell history, agent settings, and `gh` login persist even after `devc rebuild`. Host `~/.gitconfig` is mounted read-only for git identity.
 
@@ -299,6 +316,20 @@ To explicitly disable host Neovim import:
 
 ```bash
 DEVC_DISABLE_LOCAL_NVIM=1 devc .
+```
+
+### tmux config/plugins not appearing in container
+
+The tmux host import only applies to the `devc` workflow (`devc .` / `devc template`).
+
+- Ensure host tmux paths exist at `~/.tmux` and/or `~/.tmux.conf`
+- Ensure `DEVC_DISABLE_LOCAL_TMUX` is not set to `1`, `true`, or `yes`
+- Recreate/rebuild after changes: `devc rebuild`
+
+To explicitly disable host tmux import and use defaults:
+
+```bash
+DEVC_DISABLE_LOCAL_TMUX=1 devc .
 ```
 
 ### Python/uv not working
